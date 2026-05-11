@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shield-regime"
-version = "0.1.0"
+version = "0.1.1"
 description = "Detect market manipulation using price kinematics and volume anomaly analysis."
 readme = "README.md"
 license = "MIT"
@@ -51,7 +51,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/shield-regime"
-Documentation = "https://github.com/YOUR_USERNAME/shield-regime#readme"
-Repository = "https://github.com/YOUR_USERNAME/shield-regime"
-Issues = "https://github.com/YOUR_USERNAME/shield-regime/issues"
+Homepage = "https://github.com/VL-mwb/shield-regime"
+Documentation = "https://github.com/VL-mwb/shield-regime#readme"
+Repository = "https://github.com/VL-mwb/shield-regime"
+Issues = "https://github.com/VL-mwb/shield-regime/issues"
