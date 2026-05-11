@@ -21,9 +21,17 @@ By modeling price as a physical particle and volume as the underlying force movi
 
 ## 🚀 Installation
 
+### 1. Via PyPI (Recommended)
+You can install the stable release of ShieldRegime directly from PyPI:
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/shield-regime.git
+pip install shield-regime
+```
+
+### 2. From Source (For Development)
+If you want to contribute, run the tests, or build from source:
+```bash
+# Clone the official repository
+git clone https://github.com/VL-mwb/shield-regime.git
 cd shield-regime
 
 # Install in editable mode with development dependencies
