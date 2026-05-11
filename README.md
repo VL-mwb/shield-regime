@@ -111,6 +111,20 @@ pytest tests/ -v
 
 ---
 
+## 🤖 Agentic AI & MCP Server Support (Autonomous Surveillance)
+
+ShieldRegime is built for the era of autonomous trading and AI agents. It natively supports the **Model Context Protocol (MCP)**, allowing LLM-based assistants (like Claude, ChatGPT, and Gemini) to autonomously run physics-inspired compliance audits.
+
+We provide pre-built integrations for the three main AI Agent paradigms in the [agency/](agency/) directory:
+
+1. **Model Context Protocol (`agency/mcp_server.py`)**: Run a local MCP server so your AI assistants can natively query `scan_ticker_for_manipulation`.
+2. **Cursor IDE Rules (`agency/cursor/.cursorrules`)**: Enforce compliance checks inside Cursor or Copilot whenever AI generates trading code.
+3. **Claude Code Prompt (`agency/claude_code/market_surveillance.prompt`)**: Instruct Claude Code to act as a terminal-based market surveillance compliance officer.
+
+For setup instructions, see the specialized [agency/README.md](agency/README.md).
+
+---
+
 ## 🗺️ Roadmap & Future Work
 
 ShieldRegime is actively developed to provide regulatory-grade market surveillance.
