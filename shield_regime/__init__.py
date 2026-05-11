@@ -2,7 +2,7 @@
 ShieldRegime — Detect market manipulation using price kinematics.
 
 A physics-inspired toolkit for identifying suspicious trading patterns
-such as Pump-and-Dump schemes, Wash Trading, and Spoofing in financial
+such as Pump-and-Dump schemes and Wash Trading in financial
 time series data.
 """
 

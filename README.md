@@ -4,7 +4,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**ShieldRegime** is an open-source Python library designed to identify market manipulation and suspicious trading activities (such as **Pump-and-Dump schemes**, **Wash Trading**, and **Spoofing**) using **price kinematics**—an innovative, physics-inspired approach to financial time-series analysis.
+**ShieldRegime** is an open-source Python library designed to identify market manipulation and suspicious trading activities (such as **Pump-and-Dump schemes** and **Wash Trading**) using **price kinematics**—an innovative, physics-inspired approach to financial time-series analysis.
 
 By modeling price as a physical particle and volume as the underlying force moving it, ShieldRegime computes real-time derivatives (velocity, acceleration, kinetic friction) to flag manipulative trends before they impact market integrity.
 
@@ -103,7 +103,18 @@ pytest tests/ -v
 
 ---
 
+## 🗺️ Roadmap & Future Work
+
+ShieldRegime is actively developed to provide regulatory-grade market surveillance.
+
+- [x] **Phase 1: Core Price Kinematics** — Smoothed velocity & acceleration derivatives.
+- [x] **Phase 2: Pump-and-Dump Detection** — Dynamic peak-tracking state machines.
+- [x] **Phase 3: Wash Trading & Crypto Scans** — Volume-price profiling (`wash_trade_index`) and crypto speculative scans.
+- [ ] **Phase 4 (Future HFT Expansion): High-Frequency Spoofing & Layering Detector** — Modeling book pressure imbalances (requires L2/L3 order book tick feeds).
+
+---
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
