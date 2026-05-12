@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shield-regime"
-version = "0.1.2"
+version = "0.1.3"
 description = "Detect market manipulation using price kinematics and volume anomaly analysis."
 readme = "README.md"
 license = "MIT"
