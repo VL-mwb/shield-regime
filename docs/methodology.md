@@ -10,7 +10,7 @@ By calculating the smoothed first and second derivatives of price (Velocity and 
 
 ---
 
-## 2. The Kinematic-Market Mapping (物理學與金融市場對照)
+## 2. The Kinematic-Market Mapping 
 
 In classical Newtonian mechanics, a particle's movement is described by its position, mass, velocity, acceleration, and the forces acting upon it. We map these concepts directly to order books and price series:
 
@@ -69,7 +69,7 @@ $$a(t) = \frac{dv(t)}{dt} = \frac{d^2P(t)}{dt^2}$$
 In our discrete framework, raw acceleration is the first difference of smoothed velocity:
 $$A_p(t) = V_p(t) - V_p(t-1)$$
 
-We normalize acceleration similarly using a rolling Z-score over lookback window $L$:
+We normalize acceleration similarly using a rolling Z-score over a lookback window $L$:
 $$Z_{a}(t) = \frac{A_p(t) - \mu_{a}(t)}{\sigma_{a}(t)}$$
 
 ---
@@ -78,7 +78,7 @@ $$Z_{a}(t) = \frac{A_p(t) - \mu_{a}(t)}{\sigma_{a}(t)}$$
 
 The KRS is designed to capture **momentum exhaustion** (the point where a stock is still moving upward, but its brakes are slammed on heavily). 
 
-In physical terms, this occurs when velocity is positive ($Z_v > 0$) but acceleration is highly negative ($Z_a < 0$). This represents an "impending top" due to extreme deceleration:
+In physical terms, this occurs when velocity is positive ($Z_v > 0$), but acceleration is highly negative ($Z_a < 0$). This represents an "impending top" due to extreme deceleration:
 
 $$KRS(t) = \begin{cases} 
 - (Z_{v}(t) \cdot Z_{a}(t)) & \text{if } Z_{v}(t) > 0 \text{ and } Z_{a}(t) < 0 \\
@@ -151,13 +151,13 @@ alert --> normal : Window Ends / Reset
 
 The detector models the pump-and-dump cycle as an asymmetric three-step process:
 
-1.  **The Pump Phase Trigger (拉抬觸發)**:
+1.  **The Pump Phase Trigger**:
     The detector scans for a joint anomaly where velocity and volume explode simultaneously on some day $t_{pump}$:
     $$Z_{v}(t_{pump}) \ge \tau_{v} \quad \text{AND} \quad VS_{t_{pump}} \ge \tau_{vol}$$
     Where $\tau_{v}$ (default 2.0) and $\tau_{vol}$ (default 2.5 or 3.0) are statistical thresholds.
-2.  **Peak Price Tracking (峰值追蹤)**:
+2.  **Peak Price Tracking**:
     Once the pump is triggered, the system starts a trailing peak tracker to identify the maximum close price $P_{peak}$ achieved during this mania phase. It stops tracking when velocity decelerates heavily (KRS peaks).
-3.  **The Dump Phase Validation (崩盤驗證)**:
+3.  **The Dump Phase Validation**:
     From the day of $P_{peak}$, the detector opens an observation window of length $W_{dump}$ (e.g., 15 to 90 days). It checks if the asset suffers a dramatic, catastrophic drop $\theta_{dump}$ (e.g., $-25\%$ or $-30\%$) from $P_{peak}$:
     $$\text{Drawdown}_t = \frac{P_t - P_{peak}}{P_{peak}} \le \theta_{dump} \quad \text{for } t \in [t_{peak}, t_{peak} + W_{dump}]$$
     If this condition is met, a **HIGH** or **CRITICAL** severity `PUMP_AND_DUMP` alert is recorded.
