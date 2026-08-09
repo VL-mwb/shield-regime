@@ -115,17 +115,18 @@ pytest tests/ -v
 
 ---
 
-## 🤖 Agentic AI & MCP Server Support (Autonomous Surveillance)
+## 🤖 Autonomous AI Agent Integration & Cloud API
 
-ShieldRegime is built for the era of autonomous trading and AI agents. It natively supports the **Model Context Protocol (MCP)**, allowing LLM-based assistants (like Claude, ChatGPT, and Gemini) to autonomously run physics-inspired compliance audits.
+ShieldRegime's mathematical engine is designed to be fully compatible with Model Context Protocol (MCP) and modern Agentic AI frameworks (Claude, ChatGPT, AutoGen).
 
-We provide pre-built integrations for the three main AI Agent paradigms in the [agency/](agency/) directory:
-
-1. **Model Context Protocol (`agency/mcp_server.py`)**: Run a local MCP server so your AI assistants can natively query `scan_ticker_for_manipulation`.
-2. **Cursor IDE Rules (`agency/cursor/.cursorrules`)**: Enforce compliance checks inside Cursor or Copilot whenever AI generates trading code.
-3. **Claude Code Prompt (`agency/claude_code/market_surveillance.prompt`)**: Instruct Claude Code to act as a terminal-based market surveillance compliance officer.
-
-For setup instructions, see the specialized [agency/README.md](agency/README.md).
+> [!NOTE]
+> **Looking for Zero-Config AI Agent Integration?**  
+> If you want your AI agents to query ShieldRegime directly without managing local data pipelines, stock scrapers, or Python environments, check out our official **Capafy Managed Agent Skill**.
+> 
+> The Capafy version provides:
+> - **Pre-calibrated parameters** fine-tuned for TWSE (Taiwan Stock Exchange) and US equity market microstructures.
+> - **Live market data feeds** integrated automatically.
+> - **Plug-and-play MCP / API endpoints** for instant integration into AI trading assistants.
 
 ---
 
