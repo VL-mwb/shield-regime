@@ -60,13 +60,9 @@ df_clean = df.copy()
 df_clean.index = pd.to_datetime(df.index)
 df_clean.columns = [col.lower() for col in df_clean.columns]
 
-# 2. Initialize the detector with custom thresholds
-detector = sr.PumpDumpDetector(
-    velocity_z_threshold=2.0,      # Trigger on +2.0σ price velocity
-    volume_spike_threshold=3.0,    # Require volume > 3x recent average
-    dump_drop_threshold=-25.0,     # Flag if price crashes > 25% from peak
-    lookback=40,                   # 40-day rolling baseline
-)
+# 2. Initialize the detector with default baseline thresholds
+# (Note: For pre-calibrated live TWSE/US market parameters, use the Capafy Agent Skill)
+detector = sr.PumpDumpDetector(lookback=40)
 
 # 3. Scan the asset
 alerts = detector.scan(df_clean, ticker="GME")
