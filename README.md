@@ -61,7 +61,6 @@ df_clean.index = pd.to_datetime(df.index)
 df_clean.columns = [col.lower() for col in df_clean.columns]
 
 # 2. Initialize the detector with default baseline thresholds
-# (Note: For pre-calibrated live TWSE/US market parameters, use the Capafy Agent Skill)
 detector = sr.PumpDumpDetector(lookback=40)
 
 # 3. Scan the asset
@@ -121,14 +120,6 @@ pytest tests/ -v
 
 ShieldRegime's mathematical engine is designed to be fully compatible with Model Context Protocol (MCP) and modern Agentic AI frameworks (Claude, ChatGPT, AutoGen).
 
-> [!NOTE]
-> **Looking for Zero-Config AI Agent Integration?**  
-> If you want your AI agents to query ShieldRegime directly without managing local data pipelines, stock scrapers, or Python environments, check out our official **Capafy Managed Agent Skill**.
-> 
-> The Capafy version provides:
-> - **Pre-calibrated parameters** fine-tuned for TWSE (Taiwan Stock Exchange) and US equity market microstructures.
-> - **Live market data feeds** integrated automatically.
-> - **Plug-and-play MCP / API endpoints** for instant integration into AI trading assistants.
 
 ---
 
