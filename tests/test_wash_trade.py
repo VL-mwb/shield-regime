@@ -75,3 +75,43 @@ def test_detects_wash_trade_anomaly(wash_trade_stock):
     assert alert.duration_days == 4  # 4 calendar days (Feb 26 to Mar 1)
     assert alert.metrics["max_wti"] > 5.0
     assert alert.metrics["max_vol_spike"] > 5.0
+
+
+def test_first_detection_and_group_extension(wash_trade_stock):
+    d=WashTradeDetector()
+    first=d.scan(wash_trade_stock.iloc[:41])[0]
+    before=first.to_dict()
+    full=d.scan(wash_trade_stock)[0]
+    assert first.detected_at==wash_trade_stock.index[40]
+    assert full.detected_at==first.detected_at
+    assert full.end_date>first.end_date
+    assert first.to_dict()==before
+
+def test_warmup_not_backdated(monkeypatch,clean_stock):
+    import shield_regime.detectors.wash_trade as mod
+    v=pd.Series(10.,index=clean_stock.index)
+    monkeypatch.setattr(mod,'wash_trade_index',lambda *a,**k:v)
+    monkeypatch.setattr(mod,'volume_spike_index',lambda *a,**k:v)
+    a=WashTradeDetector().scan(clean_stock)[0]
+    assert a.start_date==clean_stock.index[19] and a.detected_at==clean_stock.index[19]
+
+
+def test_zero_range_prefix_snapshots_and_warmup():
+    df=pd.DataFrame(dict(high=100.,low=100.,close=100.,volume=[100.]*20+[1000.]*5),index=pd.bdate_range('2024-01-01',periods=25))
+    detector=WashTradeDetector()
+    for size in range(1,20):
+        from shield_regime import InsufficientDataWarning
+        with pytest.warns(InsufficientDataWarning):assert detector.scan(df.iloc[:size])==[]
+    assert detector.scan(df.iloc[:20])==[]
+    first=detector.scan(df.iloc[:21])[0];saved=first.to_dict()
+    for size in range(21,26):
+        alert=detector.scan(df.iloc[:size])[0]
+        assert alert.detected_at==df.index[20]
+        assert alert.metrics['zero_range_days']==float(size-20)
+        assert first.to_dict()==saved
+
+
+def test_existing_positive_range_metrics_unchanged(wash_trade_stock):
+    alert=WashTradeDetector().scan(wash_trade_stock)[0]
+    assert alert.metrics['zero_range_days']==0.
+    assert alert.detected_at==wash_trade_stock.index[40]

@@ -100,9 +100,9 @@ def plot_alerts(
                 x=[alert.start_date],
                 y=[df.loc[alert.start_date, "close"]],
                 mode="markers+text",
-                name=f"Pump Start #{idx}",
+                name=f"Event Start #{idx}",
                 marker=dict(symbol="triangle-up", size=12, color="#4CAF50"),
-                text=[f"Pump Start"],
+                text=[f"Event Start"],
                 textposition="bottom center",
                 showlegend=False,
             ),
@@ -116,15 +116,29 @@ def plot_alerts(
                 x=[alert.end_date],
                 y=[df.loc[alert.end_date, "close"]],
                 mode="markers+text",
-                name=f"Dump Low #{idx}",
+                name=f"Observed End #{idx}",
                 marker=dict(symbol="triangle-down", size=12, color="#F44336"),
-                text=[f"Dump Low ({alert.metrics.get('dump_drop_pct', 0.0):.1f}%)"],
+                text=[f"Observed End ({alert.metrics.get('dump_drop_pct', 0.0):.1f}%)"],
                 textposition="top center",
                 showlegend=False,
             ),
             row=1,
             col=1,
         )
+
+        if alert.detected_at is not None:
+            fig.add_trace(
+                go.Scatter(
+                    x=[alert.detected_at],
+                    y=[df.loc[alert.detected_at, 'close']],
+                    mode='markers+text',
+                    name=f'Alert Confirmed #{idx}',
+                    marker=dict(symbol='diamond', size=12, color='#FF9800'),
+                    text=['Alert Confirmed'],
+                    textposition='top center',
+                    showlegend=False,
+                ), row=1, col=1,
+            )
 
     # 2. Plot Velocity Z-Score
     fig.add_trace(

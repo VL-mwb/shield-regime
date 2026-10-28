@@ -15,12 +15,12 @@ from typing import Dict, Optional
 
 
 class AlertSeverity(Enum):
-    """Traffic-light severity for detected anomalies."""
+    """Rule-based review priority for detected anomalies."""
 
-    LOW = "LOW"            # Statistical outlier, worth monitoring
-    MEDIUM = "MEDIUM"      # Multiple indicators converge — suspicious
-    HIGH = "HIGH"          # Strong manipulation signature detected
-    CRITICAL = "CRITICAL"  # Textbook manipulation pattern confirmed
+    LOW = "LOW"            # Low review priority
+    MEDIUM = "MEDIUM"      # Medium review priority
+    HIGH = "HIGH"          # High review priority
+    CRITICAL = "CRITICAL"  # Critical review priority
 
 
 @dataclass
@@ -30,9 +30,10 @@ class Alert:
     Attributes:
         ticker:     Stock symbol (e.g. "GME", "3662").
         alert_type: Category string such as "PUMP_AND_DUMP" or "WASH_TRADE".
-        severity:   How confident the detector is.
+        severity:   Rule-based review priority.
         start_date: First date of the suspicious window.
-        end_date:   Last date of the suspicious window (may equal start_date).
+        end_date:   Observed end; confirmation bar for pump, latest group bar for wash.
+        detected_at: First bar whose completed data confirms the alert; None for legacy alerts.
         headline:   One-line human-readable summary.
         details:    Longer explanation with numbers.
         metrics:    Raw indicator values that triggered the alert.
@@ -47,6 +48,8 @@ class Alert:
     details: str = ""
     metrics: Dict[str, float] = field(default_factory=dict)
 
+    detected_at: Optional[datetime] = None
+
     # ------------------------------------------------------------------
     # Convenience helpers
     # ------------------------------------------------------------------
@@ -59,6 +62,7 @@ class Alert:
     def to_dict(self) -> Dict:
         """Serialise to a plain dict (JSON-friendly)."""
         return {
+            "detected_at": self.detected_at.isoformat() if self.detected_at is not None else None,
             "ticker": self.ticker,
             "alert_type": self.alert_type,
             "severity": self.severity.value,

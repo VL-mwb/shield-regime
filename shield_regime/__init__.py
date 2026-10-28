@@ -21,6 +21,7 @@ from shield_regime.detectors.wash_trade import WashTradeDetector
 from shield_regime.visualizer import plot_alerts
 
 __all__ = [
+    "InsufficientDataWarning",
     "price_velocity",
     "velocity_zscore",
     "price_acceleration",
@@ -34,3 +35,5 @@ __all__ = [
     "WashTradeDetector",
     "plot_alerts",
 ]
+
+from shield_regime.validation import InsufficientDataWarning

@@ -1,21 +1,19 @@
-"""
-wash_trade.py — High-fidelity Wash Trading Detector.
-
-Identifies self-dealing or fake volume generation scams where volume
-explodes dramatically (high volume spike) but the price remains narrow or
-locked in a tight band (abnormally low intraday range).
-"""
+"""wash_trade.py — Rule-based volume-range anomaly screening for review."""
 
 from __future__ import annotations
 
 import pandas as pd
 
-from shield_regime.indicators.volume_profile import volume_spike_index, wash_trade_index
+from shield_regime.indicators.volume_profile import _prepare_wti_inputs, volume_spike_index, wash_trade_index
 from shield_regime.models.alert import Alert, AlertSeverity
+from shield_regime.numerics import finite_metric, ensure_no_infinity
+
+import warnings
+from shield_regime.validation import validate_market_data, validate_window, validate_positive, InsufficientDataWarning
 
 
 class WashTradeDetector:
-    """Wash Trading Detector using kinematic volume-price footprints."""
+    """Screen volume-range anomalies for review; OHLCV does not identify trading parties."""
 
     def __init__(
         self,
@@ -33,12 +31,15 @@ class WashTradeDetector:
         lookback : int, default 20
             Rolling baseline window.
         """
+        validate_window('lookback', lookback, 2)
+        validate_positive('wti_threshold', wti_threshold)
+        validate_positive('volume_spike_threshold', volume_spike_threshold)
         self.wti_threshold = wti_threshold
         self.volume_spike_threshold = volume_spike_threshold
         self.lookback = lookback
 
     def scan(self, df: pd.DataFrame, ticker: str = "UNKNOWN") -> list[Alert]:
-        """Scan historical dataframe for wash trading anomalies.
+        """Scan a historical dataframe for volume-range anomaly candidates.
 
         Parameters
         ----------
@@ -50,21 +51,24 @@ class WashTradeDetector:
         Returns
         -------
         list[Alert]
-            List of generated wash trading alerts.
+            List of volume-range screening alerts.
         """
-        required_cols = ["high", "low", "close", "volume"]
-        if not all(col in df.columns for col in required_cols):
-            return []
-
+        raw_df = df
+        df = validate_market_data(raw_df, ('high', 'low', 'close', 'volume'))
+        high, low, volume = _prepare_wti_inputs(raw_df['high'], raw_df['low'], raw_df['volume'])
         if len(df) < self.lookback:
+            warnings.warn('WashTradeDetector requires at least lookback bars', InsufficientDataWarning, stacklevel=2)
             return []
+        wti = wash_trade_index(high, low, volume, lookback=self.lookback)
+        vol_spike = volume_spike_index(volume, lookback=self.lookback)
 
-        # 1. Compute baseline kinematic indicators
-        wti = wash_trade_index(df["high"], df["low"], df["volume"], lookback=self.lookback)
-        vol_spike = volume_spike_index(df["volume"], lookback=self.lookback)
+        ensure_no_infinity("WTI", wti)
+        ensure_no_infinity("volume spike", vol_spike)
 
         # 2. Identify anomaly flags
         is_anomaly = (wti >= self.wti_threshold) & (vol_spike >= self.volume_spike_threshold)
+
+        is_anomaly.iloc[:self.lookback - 1] = False
 
         # 3. Group consecutive anomaly days
         alerts: list[Alert] = []
@@ -96,7 +100,7 @@ class WashTradeDetector:
         end_idx: int,
         ticker: str,
     ) -> Alert:
-        """Helper to package wash trading anomaly stats into an Alert."""
+        """Package observed volume-range anomaly statistics into an Alert."""
         start_date = df.index[start_idx]
         end_date = df.index[end_idx]
         duration = (end_idx - start_idx) + 1
@@ -104,8 +108,11 @@ class WashTradeDetector:
         sub_wti = wti.iloc[start_idx : end_idx + 1]
         sub_vol_spike = vol_spike.iloc[start_idx : end_idx + 1]
 
-        max_wti = float(sub_wti.max())
-        max_vol_spike = float(sub_vol_spike.max())
+        max_wti = finite_metric("max_wti", sub_wti.max())
+        max_vol_spike = finite_metric("max_vol_spike", sub_vol_spike.max())
+
+        zero_range_days = int(df['high'].iloc[start_idx:end_idx + 1].eq(
+            df['low'].iloc[start_idx:end_idx + 1]).sum())
 
         # Determine severity
         if max_wti >= 8.0 and duration >= 3:
@@ -115,12 +122,14 @@ class WashTradeDetector:
         else:
             severity = AlertSeverity.MEDIUM
 
-        headline = f"Wash Trading Signature Detected: Peak WTI {max_wti:.2f}"
+        headline = f'Volume-Range Anomaly: Peak WTI {max_wti:.2f}'
         details = (
-            f"The asset exhibited highly abnormal self-dealing signatures "
-            f"over {duration} trading day(s). Volume surged to a peak of "
-            f"{max_vol_spike:.2f}x average while the intraday price range remained "
-            f"exceptionally locked, pushing the Wash Trade Index (WTI) to {max_wti:.2f}."
+            f'Observed {duration} consecutive volume-range anomaly bar(s). '
+            f'Peak volume ratio was {max_vol_spike:.2f}x the rolling mean '
+            f'(including the current bar), and peak WTI was {max_wti:.2f}. '
+            f'{zero_range_days} bar(s) had high equal to low. '
+            'This OHLCV screening signal does not establish self-trading or market manipulation. '
+            'Severity indicates review priority, not a probability.'
         )
 
         return Alert(
@@ -128,11 +137,13 @@ class WashTradeDetector:
             alert_type="WASH_TRADE",
             severity=severity,
             start_date=start_date,
+            detected_at=start_date,
             end_date=end_date,
             headline=headline,
             metrics={
                 "max_wti": max_wti,
                 "max_vol_spike": max_vol_spike,
+                "zero_range_days": float(zero_range_days),
             },
             details=details,
         )

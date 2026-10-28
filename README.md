@@ -17,7 +17,7 @@ By modeling price as a physical particle and volume as the underlying force movi
 ## ⚡ Key Features
 
 *   **📈 Price Kinematics**: Smoothed velocity (1st derivative) and acceleration (2nd derivative) rolling Z-score computations to identify momentum-thrust anomalies.
-*   **📊 Volume-Price Profiling**: Advanced indicators (`volume_price_divergence`, `wash_trade_index`) to catch high-volume, narrow-range wash sales.
+*   **📊 Volume-Price Profiling**: Advanced indicators (`volume_price_divergence`, `wash_trade_index`) to flag volume-range anomalies for review.
 *   **🚨 Multi-Stage Detectors**: High-fidelity detection models (`PumpDumpDetector`) mapping base, pump, and dump stages.
 *   **🎨 Stunning Visualization**: Interactive, presentation-ready Plotly charts highlighting anomaly regions, trigger bounds, and drawdowns.
 
@@ -95,15 +95,21 @@ The second derivative of price, capturing sudden trend thrusts and aggressive ma
 $$A_t = \text{EMA}(V_t - V_{t-1}, \lambda)$$
 
 ### Wash Trade Index ($WTI$)
-Under self-dealing conditions, volume explodes while the intraday price range remains narrow. We flag this anomaly using:
+WTI screens observed volume relative to intrabar range for review:
 
 $$WTI_t = \frac{\text{Volume Spike Ratio}}{\text{Normalized Intraday Range} + \epsilon}$$
+
+Rolling baselines include the current bar and use SMA. Write R=(high-low)/((high+low)/2), B=rolling_mean(R), and VS=volume/rolling_mean(volume). With epsilon=0.01, WTI=VS/(R/B+0.01) when B>0. After m=max(lookback//2,1) observations, an entire window of exact high==low defines R/B=0 and WTI=VS/0.01. Fewer than m observations remain NaN. A zero-volume window has undefined VS/WTI; current zero volume with a positive baseline gives WTI=0. Arithmetic failure is an error, not a no-signal result. The detector still needs the full lookback and both WTI>=3.5 and VS>=2.5 by default. Stable positive volume on flat bars can yield WTI=100 with VS=1 and no alert. WTI must not be used alone. Zero intrabar range does not mean prices are unchanged across dates.
+
+
+WTI migration: headline/details now describe volume-range anomaly candidates for review. WASH_TRADE, class names, severity values and dates remain compatibility identifiers. The new float metric zero_range_days counts exact high==low bars inside the alert group, rather than calendar duration_days. Severity indicates rule-based review priority, not a probability. OHLCV screening does not establish self-trading, trading identity, intent or market manipulation. Direct WTI calls require real finite numeric Series with identical unique indexes, positive prices, high>=low and nonnegative volume; generic indexes follow row order. Inputs are copied to float64, so float32 and narrow-integer intermediate calculations can differ from older native-dtype results. Positive-baseline regression compares the old formula on identical float64 copies at rtol=1e-12, atol=0. Wash checks original price relationships even before full warmup and rejects lost price ranges or unreliable arithmetic; the shared validator and Pump behavior are unchanged. Text consumers and strict metrics-key consumers must migrate.
+
 
 ---
 
 ## 🛠️ Running Unit Tests
 
-We maintain 100% test coverage for all kinematic formulas, detectors, and visualization routines. Run tests with:
+The latest verified suite passes 195 tests with 92% statement coverage (Python 3.11.9, pandas 3.0.2, NumPy 2.4.4). Both detector modules have 100% statement coverage; other modules retain coverage gaps. Run tests with:
 
 ```bash
 pytest tests/ -v
@@ -141,3 +147,10 @@ ShieldRegime is actively developed to provide regulatory-grade market surveillan
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+
+
+`Alert.start_date` marks the event onset, while `detected_at` is the first completed bar that confirms an alert. For Pump-and-Dump, `end_date` equals `detected_at`; the drop and severity are frozen at first confirmation, rather than revised using a later low. For Wash Trade, `detected_at` stays at the first eligible anomaly while the historical group can extend its end and aggregate metrics. Use daily prefix replay and retain the first snapshot when evaluating post-alert price changes. Daily bars are known after completion; reference-close returns do not assume execution at that close.
+
+Detectors require flat unique OHLCV columns, a unique increasing DatetimeIndex without NaT, finite real numeric values, positive prices, nonnegative volume, and consistent supplied OHLC bounds. They compute on a float64 copy. Invalid inputs and identifiable arithmetic overflow raise errors; valid data shorter than the warmup returns an empty list with `InsufficientDataWarning`. Existing manually constructed alerts may have `detected_at=None`; reconstruct timing from original data rather than substituting event dates.
+
+Pump candidates have independent peak-relative observation windows. The final bar in `dump_window` is eligible. A new qualifying pump after momentum tracking ends can coexist with older unexpired candidates. The first confirmation merges overlapping candidates into one alert, using the earliest-starting qualifying candidate consistently. Drop comparisons use price ratios with relative tolerance `8 * numpy.finfo(numpy.float64).eps` and zero absolute tolerance, including the severity boundary. Historical alert dates, drops and counts can change with this migration. WTI zero-baseline handling now follows the piecewise rule above; broader formula-documentation alignment and statistical calibration remain separate work.

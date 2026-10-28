@@ -106,26 +106,14 @@ $$VPD_t = VS_t - |Z_{price\_change}(t)|$$
 
 ### 3.6. Wash Trade Index ($WTI$) — The Tire Slipping Formula
 
-Wash trading is a manipulation where scammers trade back and forth with themselves to generate artificial volume while keeping the price locked in a tight range. 
+WTI is an OHLCV volume-range screening measure. The physical analogy is descriptive and does not establish self-trading or manipulation.
 
-We model this as the **"Tire Slipping Effect"** (high engine RPM/Force, zero forward velocity).
+$$R_t=\frac{H_t-L_t}{(H_t+L_t)/2},\quad B_t=\mathrm{SMA}(R,L)_t$$
+$$WTI_t=\frac{VS_t}{RR_t+0.01},\quad RR_t=R_t/B_t\text{ when }B_t>0$$
 
-We calculate the normalized Intraday Range ratio $RR_t$:
-$$\text{Intraday Range}_t = \frac{\text{High}_t - \text{Low}_t}{(\text{High}_t + \text{Low}_t) / 2}$$
-$$RR_t = \frac{\text{Intraday Range}_t}{\text{EMA}(\text{Intraday Range}, L)_t}$$
+Rolling baselines include the current bar and use SMA. Write R=(high-low)/((high+low)/2), B=rolling_mean(R), and VS=volume/rolling_mean(volume). With epsilon=0.01, WTI=VS/(R/B+0.01) when B>0. After m=max(lookback//2,1) observations, an entire window of exact high==low defines R/B=0 and WTI=VS/0.01. Fewer than m observations remain NaN. A zero-volume window has undefined VS/WTI; current zero volume with a positive baseline gives WTI=0. Arithmetic failure is an error, not a no-signal result. The detector still needs the full lookback and both WTI>=3.5 and VS>=2.5 by default. Stable positive volume on flat bars can yield WTI=100 with VS=1 and no alert. WTI must not be used alone. Zero intrabar range does not mean prices are unchanged across dates.
 
-The **Wash Trade Index ($WTI$)** is formulated as:
-$$WTI_t = \frac{VS_t}{RR_t + \epsilon}$$
-Where:
-*   $VS_t$ is the Volume Spike Index.
-*   $RR_t$ is the normalized daily price range ratio.
-*   $\epsilon = 0.01$ is a tiny constant preventing division by zero.
-
-When scammers generate $10\times$ average volume ($VS_t = 10$) but lock the daily range to $10\%$ of normal ($RR_t = 0.1$), the WTI explodes:
-$$WTI_t = \frac{10}{0.1 + 0.01} \approx 90.9 \quad (\text{Extreme Anomaly!})$$
-
-Under normal market conditions, a volume spike of $10\times$ naturally expands the daily trading range (e.g. $RR_t = 3.0$), keeping $WTI$ low:
-$$WTI_t = \frac{10}{3.0 + 0.01} \approx 3.32 \quad (\text{Normal Market Behavior})$$
+For a hypothetical VS=10 and RR=0.1, WTI=10/(0.1+0.01), approximately 90.9. With the same hypothetical VS and RR=3, WTI is approximately 3.32. These calculations do not imply that volume determines a particular price response in actual markets.
 
 ---
 
@@ -156,7 +144,7 @@ The detector models the pump-and-dump cycle as an asymmetric three-step process:
     $$Z_{v}(t_{pump}) \ge \tau_{v} \quad \text{AND} \quad VS_{t_{pump}} \ge \tau_{vol}$$
     Where $\tau_{v}$ (default 2.0) and $\tau_{vol}$ (default 2.5 or 3.0) are statistical thresholds.
 2.  **Peak Price Tracking**:
-    Once the pump is triggered, the system starts a trailing peak tracker to identify the maximum close price $P_{peak}$ achieved during this mania phase. It stops tracking when velocity decelerates heavily (KRS peaks).
+    Once the pump is triggered, the system starts a trailing peak tracker to identify the maximum close price $P_{peak}$ achieved during this mania phase. It stops tracking after including the first bar with velocity Z-score below 1.5. Active candidates keep independent observation windows; a new qualifying pump after tracking ends does not replace an older unexpired candidate.
 3.  **The Dump Phase Validation**:
     From the day of $P_{peak}$, the detector opens an observation window of length $W_{dump}$ (e.g., 15 to 90 days). It checks if the asset suffers a dramatic, catastrophic drop $\theta_{dump}$ (e.g., $-25\%$ or $-30\%$) from $P_{peak}$:
     $$\text{Drawdown}_t = \frac{P_t - P_{peak}}{P_{peak}} \le \theta_{dump} \quad \text{for } t \in [t_{peak}, t_{peak} + W_{dump}]$$
@@ -166,14 +154,7 @@ The detector models the pump-and-dump cycle as an asymmetric three-step process:
 
 ### 4.2. Wash Trading Detector (WTD)
 
-Unlike the asymmetrical PND cycle, wash trading is a continuous state of artificial friction. The detector triggers a `WASH_TRADE` alert when the asset exhibits the "Tire Slipping" footprint continuously:
-
-$$WTI_t \ge \tau_{wti} \quad \text{AND} \quad VS_t \ge \tau_{vol} \quad \text{for consecutive days } D \ge D_{min}$$
-
-Where:
-*   $\tau_{wti}$ is the WTI threshold (default 3.5).
-*   $\tau_{vol}$ is the minimum volume spike (default 2.5).
-*   $D_{min}$ is the minimum duration (default 1 or 2 trading days).
+Each eligible bar must satisfy WTI>=3.5 AND VS>=2.5 by default. Consecutive qualifying bars are then grouped into a WASH_TRADE alert. One bar can trigger an alert; there is no D_min parameter. Full lookback warmup applies. Group duration affects the existing review-priority rules only; detected_at stays at the first eligible bar while group end and metrics may extend.
 
 ---
 
@@ -182,8 +163,18 @@ Where:
 This methodology directly maps to the **UK FCA Handbook - Market Conduct (MAR 1.6: Market Abuse - Manipulating Transactions)**:
 
 *   **FCA MAR 1.6.2 R (1)**: *Giving false or misleading signals as to the supply of, demand for, or price of financial instruments.*
-    *   *ShieldRegime's Alignment*: The **Wash Trade Detector** mathematically proves the presence of artificial volume signals that do not translate into physical price displacement (force without displacement).
+    *   *ShieldRegime's Alignment*: The **Wash Trade Detector** flags volume-range patterns for further review; the signal alone cannot establish trading identity, intent or unlawful conduct.
 *   **FCA MAR 1.6.2 R (2)**: *Securing the price of one or several financial instruments at an abnormal or artificial level.*
     *   *ShieldRegime's Alignment*: The **Pump-and-Dump Detector** isolates artificial price inflation driven by abnormal velocity and volume surges, tracing the trajectory from initial force application to final collapse.
 
-By grounding its entire surveillance architecture in Newtonian physics and explainable mathematics, **ShieldRegime** provides a robust, defense-grade compliance framework capable of surviving rigorous regulatory audits and court-level scrutiny.
+**ShieldRegime** provides inspectable screening rules to support further review. OHLCV patterns alone do not provide court-level proof of self-trading or manipulation, and no regulatory certification is claimed.
+
+
+`Alert.start_date` marks the event onset, while `detected_at` is the first completed bar that confirms an alert. For Pump-and-Dump, `end_date` equals `detected_at`; the drop and severity are frozen at first confirmation, rather than revised using a later low. For Wash Trade, `detected_at` stays at the first eligible anomaly while the historical group can extend its end and aggregate metrics. Use daily prefix replay and retain the first snapshot when evaluating post-alert price changes. Daily bars are known after completion; reference-close returns do not assume execution at that close.
+
+Detectors require flat unique OHLCV columns, a unique increasing DatetimeIndex without NaT, finite real numeric values, positive prices, nonnegative volume, and consistent supplied OHLC bounds. They compute on a float64 copy. Invalid inputs and identifiable arithmetic overflow raise errors; valid data shorter than the warmup returns an empty list with `InsufficientDataWarning`. Existing manually constructed alerts may have `detected_at=None`; reconstruct timing from original data rather than substituting event dates.
+
+Pump candidates have independent peak-relative observation windows. The final bar in `dump_window` is eligible. A new qualifying pump after momentum tracking ends can coexist with older unexpired candidates. The first confirmation merges overlapping candidates into one alert, using the earliest-starting qualifying candidate consistently. Drop comparisons use price ratios with relative tolerance `8 * numpy.finfo(numpy.float64).eps` and zero absolute tolerance, including the severity boundary. Historical alert dates, drops and counts can change with this migration. WTI zero-baseline handling now follows the piecewise rule above; broader formula-documentation alignment and statistical calibration remain separate work.
+
+
+WTI migration: headline/details now describe volume-range anomaly candidates for review. WASH_TRADE, class names, severity values and dates remain compatibility identifiers. The new float metric zero_range_days counts exact high==low bars inside the alert group, rather than calendar duration_days. Severity indicates rule-based review priority, not a probability. OHLCV screening does not establish self-trading, trading identity, intent or market manipulation. Direct WTI calls require real finite numeric Series with identical unique indexes, positive prices, high>=low and nonnegative volume; generic indexes follow row order. Inputs are copied to float64, so float32 and narrow-integer intermediate calculations can differ from older native-dtype results. Positive-baseline regression compares the old formula on identical float64 copies at rtol=1e-12, atol=0. Wash checks original price relationships even before full warmup and rejects lost price ranges or unreliable arithmetic; the shared validator and Pump behavior are unchanged. Text consumers and strict metrics-key consumers must migrate.

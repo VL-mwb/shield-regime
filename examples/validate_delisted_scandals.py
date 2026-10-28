@@ -195,9 +195,9 @@ def test_globo_scandal():
     
     print(f"[CALC] Running market-integrity scanning. Total trading days: {len(df_globo)}")
     if not alerts:
-        print("❌ FAILED: ShieldRegime did not flag the wash-trading pattern.")
+        print("[NO SIGNAL] No volume-range anomaly met the configured rules.")
     else:
-        print(f"🎯 SUCCESS! Detected {len(alerts)} wash-trading event(s).")
+        print(f"[REVIEW] Flagged {len(alerts)} volume-range anomaly candidate(s) for review.")
         for i, alert in enumerate(alerts, 1):
             print(f"\n  🚨 ALERT #{i}: {alert.alert_type} ({alert.severity.value})")
             print(f"  - Headline: {alert.headline}")

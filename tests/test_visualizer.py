@@ -31,3 +31,15 @@ def test_plot_alerts_runs_successfully(fake_stock):
         from plotly.graph_objects import Figure
         assert isinstance(fig, Figure)
         assert len(fig.data) >= 2  # Close price + Velocity Z traces
+
+
+def test_confirmation_marker_and_legacy(fake_stock):
+    from shield_regime import Alert, AlertSeverity
+    dt=fake_stock.index[20]
+    a=Alert('X','WASH_TRADE',AlertSeverity.HIGH,dt,fake_stock.index[22],'test',detected_at=dt)
+    fig=plot_alerts(fake_stock,[a])
+    trace=next(t for t in fig.data if t.name=='Alert Confirmed #1')
+    assert trace.x[0]==dt and trace.y[0]==fake_stock.loc[dt,'close']
+    assert all('Pump Start' not in t.name and 'Dump Low' not in t.name for t in fig.data)
+    a.detected_at=None
+    assert not any(t.name.startswith('Alert Confirmed') for t in plot_alerts(fake_stock,[a]).data)
